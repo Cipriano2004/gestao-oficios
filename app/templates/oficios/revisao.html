@@ -1,0 +1,48 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}Revisar ofício{% endblock %}
+{% block breadcrumb %}<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ url_for('oficios.lista') }}">Ofícios</a></li><li class="breadcrumb-item active">Novo ofício</li></ol></nav>{% endblock %}
+{% block page_title %}Revisar e confirmar{% endblock %}
+
+{% block content %}
+<ol class="stepper" aria-label="Etapas">
+  <li class="feito"><span class="num"><i class="bi bi-check"></i></span><span class="d-none d-sm-inline">Destino</span></li>
+  <li class="feito"><span class="num"><i class="bi bi-check"></i></span><span class="d-none d-sm-inline">Atendimento</span></li>
+  <li class="feito"><span class="num"><i class="bi bi-check"></i></span><span class="d-none d-sm-inline">Texto</span></li>
+  <li class="ativo" aria-current="step"><span class="num">4</span><span class="d-none d-sm-inline">Revisão</span></li>
+</ol>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    {% set oficio = rascunho.oficio %}
+    {% set data_extenso = oficio.data_criacao|data_extenso %}
+    {% include "oficios/_folha.html" %}
+  </div>
+  <div class="col-xl-4">
+    <div class="card mb-3">
+      <div class="card-header"><h2>Resumo</h2></div>
+      <div class="card-body">
+        <dl class="row small mb-0">
+          <dt class="col-5 text-muted fw-normal">Número previsto</dt><dd class="col-7 mono fw-semibold">{{ rascunho.numero_previsto }}</dd>
+          <dt class="col-5 text-muted fw-normal">Secretaria</dt><dd class="col-7">{{ m.sigla(rascunho.departamento) }}</dd>
+          <dt class="col-5 text-muted fw-normal">Assessor</dt><dd class="col-7">{{ oficio.assessor_nome or '—' }}</dd>
+          <dt class="col-5 text-muted fw-normal">Munícipe</dt><dd class="col-7">{{ oficio.municipe_nome or '—' }}</dd>
+          <dt class="col-5 text-muted fw-normal">Local</dt><dd class="col-7">{{ [oficio.endereco, oficio.numero_endereco, oficio.bairro]|select|join(', ') or '—' }}</dd>
+        </dl>
+        <div class="alert alert-light border small mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>O número definitivo é reservado no momento da confirmação, mesmo se outra pessoa criar um ofício ao mesmo tempo.</div>
+      </div>
+    </div>
+
+    <form method="post" action="{{ url_for('oficios.confirmar') }}">
+      {{ m.csrf() }}
+      {% for chave, valor in form.items() if chave not in ('csrf_token', 'acao') %}
+        <input type="hidden" name="{{ chave }}" value="{{ valor }}">
+      {% endfor %}
+      <div class="d-grid gap-2">
+        <button class="btn btn-primary py-2" type="submit" name="acao" value="confirmar"><i class="bi bi-check2-circle me-1"></i>Confirmar e gerar número</button>
+        <button class="btn btn-light-outline" type="submit" name="acao" value="voltar"><i class="bi bi-pencil me-1"></i>Voltar e editar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

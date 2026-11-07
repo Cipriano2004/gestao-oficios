@@ -1,0 +1,117 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}Ofícios{% endblock %}
+{% block page_title %}Ofícios{% endblock %}
+
+{% block content %}
+<div class="card mb-3">
+  <div class="card-body">
+    <form class="filtros" method="get" role="search">
+      <div class="campo-busca">
+        <label class="form-label" for="q">Buscar</label>
+        <div class="input-icone">
+          <i class="bi bi-search"></i>
+          <input class="form-control" type="search" id="q" name="q" value="{{ filtros.busca }}" placeholder="Número, assunto, munícipe, rua ou bairro">
+        </div>
+      </div>
+      <div class="campo">
+        <label class="form-label" for="departamento_id">Secretaria</label>
+        <select class="form-select" id="departamento_id" name="departamento_id" data-auto-submit>
+          <option value="">Todas</option>
+          {% for d in departamentos %}<option value="{{ d.id }}" {{ 'selected' if filtros.departamento_id == d.id }}>{{ d.sigla }} · {{ d.nome }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label class="form-label" for="status">Status</label>
+        <select class="form-select" id="status" name="status" data-auto-submit>
+          <option value="">Todos</option>
+          <option value="pendente" {{ 'selected' if filtros.status == 'pendente' }}>Pendentes</option>
+          <option value="executado" {{ 'selected' if filtros.status == 'executado' }}>Executados</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label class="form-label" for="assessor">Assessor</label>
+        <select class="form-select" id="assessor" name="assessor" data-auto-submit>
+          <option value="">Todos</option>
+          {% for a in assessores %}<option {{ 'selected' if filtros.assessor == a }}>{{ a }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="campo">
+        <label class="form-label" for="mes">Mês</label>
+        <input class="form-control" type="month" id="mes" name="mes" value="{{ filtros.mes }}" data-auto-submit>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+        {% if filtros.ativos %}<a class="btn btn-light-outline" href="{{ url_for('oficios.lista') }}">Limpar</a>{% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>{{ paginacao.total }} ofício{{ 's' if paginacao.total != 1 }}{% if filtros.ativos %} encontrados{% endif %}</h2>
+    <a class="btn btn-light-outline btn-sm" href="{{ url_for('relatorios.exportar', **request.args.to_dict()) }}"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Exportar Excel</a>
+  </div>
+
+  {% if paginacao.items %}
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr><th>Número</th><th>Assunto</th><th class="d-none d-md-table-cell">Secretaria</th><th class="d-none d-lg-table-cell">Assessor</th><th class="d-none d-md-table-cell">Data</th><th>Status</th><th class="text-end"><span class="visually-hidden">Ações</span></th></tr>
+      </thead>
+      <tbody>
+      {% for o in paginacao.items %}
+        <tr class="linha-link" data-href="{{ url_for('oficios.detalhe', oficio_id=o.id) }}">
+          <td class="mono fw-semibold text-nowrap">{{ o.numero }}</td>
+          <td class="assunto">
+            <a class="d-block text-truncate" href="{{ url_for('oficios.detalhe', oficio_id=o.id) }}" title="{{ o.assunto }}">{{ o.assunto }}</a>
+            <div class="sub text-truncate">{{ o.destinatario }}{% if o.municipe_nome %} · {{ o.municipe_nome }}{% endif %}</div>
+          </td>
+          <td class="d-none d-md-table-cell">{{ m.sigla(o.departamento) }}</td>
+          <td class="d-none d-lg-table-cell small text-nowrap">{{ o.assessor_nome or '—' }}</td>
+          <td class="d-none d-md-table-cell small text-nowrap">{{ o.data_criacao|data_br }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {% if current_user.tem_perfil('admin', 'assessor') %}
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" role="switch" aria-label="Marcar ofício {{ o.numero }} como executado"
+                       {{ 'checked' if o.executado }} data-oficio-id="{{ o.id }}" data-executado-url="{{ url_for('oficios.marcar_executado', oficio_id=o.id) }}">
+              </div>
+              {% endif %}
+              {{ m.status(o) }}
+            </div>
+          </td>
+          <td class="text-end">
+            <div class="dropdown">
+              <button class="btn btn-light-outline btn-icon btn-sm" type="button" data-bs-toggle="dropdown" aria-label="Ações do ofício {{ o.numero }}"><i class="bi bi-three-dots"></i></button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{{ url_for('oficios.download', oficio_id=o.id) }}"><i class="bi bi-download me-2"></i>Baixar Word</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('oficios.detalhe', oficio_id=o.id) }}"><i class="bi bi-eye me-2"></i>Ver detalhes</a></li>
+                {% if current_user.tem_perfil('admin', 'assessor') %}
+                <li><a class="dropdown-item" href="{{ url_for('oficios.editar', oficio_id=o.id) }}"><i class="bi bi-pencil me-2"></i>Editar</a></li>
+                {% endif %}
+                {% if current_user.tem_perfil('admin') %}
+                <li><a class="dropdown-item" href="{{ url_for('oficios.renumerar', oficio_id=o.id) }}"><i class="bi bi-123 me-2"></i>Renumerar</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <form method="post" action="{{ url_for('oficios.excluir', oficio_id=o.id) }}" data-confirmar="O ofício {{ o.numero }} será excluído permanentemente." data-titulo="Excluir ofício?">
+                    {{ m.csrf() }}
+                    <button class="dropdown-item text-danger" type="submit"><i class="bi bi-trash me-2"></i>Excluir</button>
+                  </form>
+                </li>
+                {% endif %}
+              </ul>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if paginacao.pages > 1 %}<div class="card-body border-top">{{ m.paginacao(paginacao, 'oficios.lista') }}</div>{% endif %}
+  {% else %}
+    {{ m.vazio('search', 'Nenhum ofício encontrado', 'Ajuste os filtros ou limpe a busca.' if filtros.ativos else 'Crie o primeiro ofício pelo botão "Novo ofício".') }}
+  {% endif %}
+</div>
+{% endblock %}

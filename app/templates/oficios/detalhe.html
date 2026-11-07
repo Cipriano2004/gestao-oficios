@@ -1,0 +1,70 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}Ofício {{ oficio.numero }}{% endblock %}
+{% block breadcrumb %}<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ url_for('oficios.lista') }}">Ofícios</a></li><li class="breadcrumb-item active">{{ oficio.numero }}</li></ol></nav>{% endblock %}
+{% block page_title %}<span class="mono">Ofício {{ oficio.numero }}</span>{% endblock %}
+{% block acoes %}
+<a class="btn btn-primary d-inline-flex align-items-center gap-2" href="{{ url_for('oficios.download', oficio_id=oficio.id) }}"><i class="bi bi-file-earmark-word"></i><span class="d-none d-sm-inline">Baixar Word</span></a>
+{% endblock %}
+
+{% block content %}
+{% if recem_criado %}
+<div class="alert alert-success d-flex align-items-center gap-3 mb-3" role="status">
+  <i class="bi bi-check-circle-fill fs-4"></i>
+  <div class="flex-grow-1"><strong>Ofício {{ oficio.numero }} criado.</strong> O documento Word já pode ser baixado.</div>
+  <a class="btn btn-success btn-sm" href="{{ url_for('oficios.download', oficio_id=oficio.id) }}"><i class="bi bi-download me-1"></i>Baixar</a>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    {% set data_extenso = oficio.data_criacao|data_extenso %}
+    {% include "oficios/_folha.html" %}
+  </div>
+  <div class="col-xl-4">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h2>Situação</h2>
+        {{ m.status(oficio) }}
+      </div>
+      <div class="card-body">
+        {% if current_user.tem_perfil('admin', 'assessor') %}
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" role="switch" id="sw-executado" {{ 'checked' if oficio.executado }}
+                 data-oficio-id="{{ oficio.id }}" data-executado-url="{{ url_for('oficios.marcar_executado', oficio_id=oficio.id) }}">
+          <label class="form-check-label" for="sw-executado">Demanda executada pela secretaria</label>
+        </div>
+        {% endif %}
+        <dl class="row small mb-0">
+          <dt class="col-5 text-muted fw-normal">Secretaria</dt><dd class="col-7">{{ m.sigla(oficio.departamento) }} {{ oficio.departamento.nome }}</dd>
+          <dt class="col-5 text-muted fw-normal">Criado em</dt><dd class="col-7">{{ oficio.data_criacao|data_hora_br }}</dd>
+          <dt class="col-5 text-muted fw-normal">Criado por</dt><dd class="col-7">{{ oficio.criado_por.nome if oficio.criado_por else '—' }}</dd>
+          <dt class="col-5 text-muted fw-normal">Assessor</dt><dd class="col-7">{{ oficio.assessor_nome or '—' }}</dd>
+          <dt class="col-5 text-muted fw-normal">Munícipe</dt><dd class="col-7">{{ (oficio.municipe_tratamento ~ ' ' ~ oficio.municipe_nome).strip() if oficio.municipe_nome else '—' }}</dd>
+          <dt class="col-5 text-muted fw-normal">Telefone</dt><dd class="col-7">{{ oficio.municipe_telefone or '—' }}</dd>
+          <dt class="col-5 text-muted fw-normal">Local</dt><dd class="col-7">{{ [oficio.endereco, oficio.numero_endereco, oficio.bairro]|select|join(', ') or '—' }}</dd>
+          {% if oficio.atualizado_em and (oficio.atualizado_em - oficio.data_criacao).total_seconds() > 60 %}
+          <dt class="col-5 text-muted fw-normal">Atualizado</dt><dd class="col-7">{{ oficio.atualizado_em|data_hora_br }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {% if current_user.tem_perfil('admin', 'assessor') %}
+    <div class="card">
+      <div class="card-header"><h2>Ações</h2></div>
+      <div class="card-body d-grid gap-2">
+        <a class="btn btn-light-outline text-start" href="{{ url_for('oficios.editar', oficio_id=oficio.id) }}"><i class="bi bi-pencil me-2"></i>Editar texto e dados</a>
+        {% if current_user.tem_perfil('admin') %}
+        <a class="btn btn-light-outline text-start" href="{{ url_for('oficios.renumerar', oficio_id=oficio.id) }}"><i class="bi bi-123 me-2"></i>Renumerar</a>
+        <form method="post" action="{{ url_for('oficios.excluir', oficio_id=oficio.id) }}" data-confirmar="O ofício {{ oficio.numero }} será excluído permanentemente. A exclusão fica registrada na auditoria." data-titulo="Excluir ofício?" class="d-grid">
+          {{ m.csrf() }}
+          <button class="btn btn-light-outline text-start text-danger" type="submit"><i class="bi bi-trash me-2"></i>Excluir ofício</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}Numeração {{ mapa.ano }}{% endblock %}
+{% block page_title %}Numeração de {{ mapa.ano }}{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-sm-6 col-xl-3">{{ m.kpi('Próximo número', mapa.proximo, 'arrow-right-circle', 'tom-verde') }}</div>
+  <div class="col-sm-6 col-xl-3">{{ m.kpi('Ofícios no ano', mapa.total_usados, 'files', 'tom-azul') }}</div>
+  <div class="col-sm-6 col-xl-3">{{ m.kpi('Números reservados', mapa.total_reservados, 'bookmark', 'tom-ambar', 'usados fora do sistema') }}</div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card kpi">
+      <span class="icone tom-azul"><i class="bi bi-calendar3"></i></span>
+      <form method="get" class="flex-grow-1">
+        <label class="rotulo d-block mb-1" for="ano">Ano</label>
+        <select class="form-select form-select-sm" id="ano" name="ano" data-auto-submit>
+          {% for a in range(ano_atual, ano_atual - 6, -1) %}<option {{ 'selected' if a == mapa.ano }}>{{ a }}</option>{% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-header flex-wrap">
+        <h2>Mapa de números <span class="small text-muted fw-normal">a partir do {{ '%03d'|format(mapa.inicio) }}</span></h2>
+        <div class="legenda"><span class="l-of">Ofício</span><span class="l-res">Reservado</span><span class="l-liv">Livre</span><span class="l-prox">Próximo</span></div>
+      </div>
+      <div class="card-body">
+        <div class="grade-numeros">
+          {% for n in mapa.numeros %}
+            {% if n.status == 'OFICIO' %}
+              <a class="num-cel oficio" href="{{ url_for('oficios.detalhe', oficio_id=n.oficio_id) }}" title="{{ n.assunto }}"><span class="n">{{ '%03d'|format(n.sequencial) }}</span><small>ofício</small></a>
+            {% elif n.status == 'RESERVADO' %}
+              <div class="num-cel reservado" title="{{ n.motivo }}"><span class="n">{{ '%03d'|format(n.sequencial) }}</span><small>reservado</small></div>
+            {% else %}
+              <div class="num-cel livre {{ 'proximo' if n.proximo }}"><span class="n">{{ '%03d'|format(n.sequencial) }}</span><small>{{ 'próximo' if n.proximo else 'livre' }}</small></div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    {% if current_user.tem_perfil('admin') %}
+    <div class="card mb-3">
+      <div class="card-header"><h2>Marcar número como usado</h2></div>
+      <div class="card-body">
+        <p class="small text-muted">Para ofícios feitos fora do sistema. A numeração automática passa a pular esse número.</p>
+        <form method="post" action="{{ url_for('numeracao.reservar') }}">
+          {{ m.csrf() }}<input type="hidden" name="ano" value="{{ mapa.ano }}">
+          <div class="row g-2">
+            <div class="col-4"><label class="form-label" for="sequencial">Número</label><input class="form-control mono" id="sequencial" name="sequencial" type="number" min="1" required></div>
+            <div class="col-8"><label class="form-label" for="motivo">Motivo</label><input class="form-control" id="motivo" name="motivo" maxlength="200" placeholder="feito à mão"></div>
+          </div>
+          <button class="btn btn-soft w-100 mt-3" type="submit"><i class="bi bi-bookmark-plus me-1"></i>Reservar</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><h2>Ajustar próximo número</h2></div>
+      <div class="card-body">
+        <p class="small text-muted">Se o próximo número calculado estiver abaixo do desejado, o sistema passa a usar este valor.</p>
+        <form method="post" action="{{ url_for('numeracao.definir_proximo') }}" data-confirmar="A numeração automática de {{ mapa.ano }} vai continuar a partir do número informado." data-titulo="Ajustar numeração?">
+          {{ m.csrf() }}<input type="hidden" name="ano" value="{{ mapa.ano }}">
+          <div class="input-group">
+            <input class="form-control mono" name="novo_proximo" type="number" min="1" required value="{{ mapa.proximo_seq }}" aria-label="Próximo número">
+            <span class="input-group-text mono">/{{ mapa.ano }}</span>
+            <button class="btn btn-primary" type="submit">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% set reservados = mapa.reservas %}
+    <div class="card">
+      <div class="card-header"><h2>Reservas</h2><span class="badge-sigla">{{ reservados|length }}</span></div>
+      {% if reservados %}
+      <ul class="list-group list-group-flush">
+        {% for r in reservados %}
+        <li class="list-group-item d-flex align-items-center gap-2 bg-transparent">
+          <span class="mono fw-semibold">{{ '%03d'|format(r.sequencial) }}/{{ mapa.ano }}</span>
+          <span class="small text-muted text-truncate flex-grow-1">{{ r.motivo }}</span>
+          {% if current_user.tem_perfil('admin') %}
+          <form method="post" action="{{ url_for('numeracao.liberar') }}" data-confirmar="O número {{ '%03d'|format(r.sequencial) }}/{{ mapa.ano }} volta a ficar livre." data-titulo="Liberar número?">
+            {{ m.csrf() }}<input type="hidden" name="ano" value="{{ mapa.ano }}"><input type="hidden" name="sequencial" value="{{ r.sequencial }}">
+            <button class="btn btn-light-outline btn-sm btn-icon" type="submit" aria-label="Liberar número"><i class="bi bi-x-lg"></i></button>
+          </form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        <div class="card-body small text-muted">Nenhum número reservado neste ano.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% macro status(oficio) -%}
+<span class="badge-status {{ 'executado' if oficio.executado else 'pendente' }}" data-badge-oficio="{{ oficio.id }}">{{ oficio.status }}</span>
+{%- endmacro %}
+
+{% macro sigla(dep) -%}
+{% if dep %}<span class="badge-sigla" title="{{ dep.nome }}">{{ dep.sigla }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro kpi(rotulo, valor, icone, tom='tom-azul', extra=None) -%}
+<div class="card kpi">
+  <span class="icone {{ tom }}"><i class="bi bi-{{ icone }}"></i></span>
+  <div class="min-w-0">
+    <div class="rotulo">{{ rotulo }}</div>
+    <div class="valor">{{ valor }}</div>
+    {% if extra %}<div class="extra">{{ extra|safe }}</div>{% endif %}
+  </div>
+</div>
+{%- endmacro %}
+
+{% macro vazio(icone, titulo, texto='') -%}
+<div class="vazio">
+  <i class="bi bi-{{ icone }}"></i>
+  <div class="fw-semibold text-body">{{ titulo }}</div>
+  {% if texto %}<div class="small">{{ texto }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro csrf() -%}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+{% macro paginacao(p, endpoint) -%}
+{% if p.pages > 1 %}
+<nav aria-label="Paginação" class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+  <span class="small text-muted">Mostrando {{ p.first }}–{{ p.last }} de {{ p.total }}</span>
+  {% set args = request.args.to_dict() %}
+  <ul class="pagination pagination-sm">
+    <li class="page-item {{ 'disabled' if not p.has_prev }}">
+      {% set _ = args.update({'pagina': p.prev_num or 1}) %}
+      <a class="page-link" href="{{ url_for(endpoint, **args) }}" aria-label="Anterior"><i class="bi bi-chevron-left"></i></a>
+    </li>
+    {% for n in p.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+      {% if n %}
+        {% set _ = args.update({'pagina': n}) %}
+        <li class="page-item {{ 'active' if n == p.page }}"><a class="page-link" href="{{ url_for(endpoint, **args) }}">{{ n }}</a></li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+    <li class="page-item {{ 'disabled' if not p.has_next }}">
+      {% set _ = args.update({'pagina': p.next_num or p.pages}) %}
+      <a class="page-link" href="{{ url_for(endpoint, **args) }}" aria-label="Próxima"><i class="bi bi-chevron-right"></i></a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+{%- endmacro %}

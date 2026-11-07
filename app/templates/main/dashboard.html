@@ -1,0 +1,81 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}Início{% endblock %}
+{% block page_title %}Olá, {{ current_user.nome.split()[0] }}{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-sm-6 col-xl-3">
+    {% if kpi.variacao_mes is none %}{% set var = 'sem comparação com o mês anterior' %}
+    {% elif kpi.variacao_mes >= 0 %}{% set var = '<span class="tendencia-alta"><i class="bi bi-arrow-up-right"></i> ' ~ kpi.variacao_mes ~ '%</span> vs. mês anterior' %}
+    {% else %}{% set var = '<span class="tendencia-baixa"><i class="bi bi-arrow-down-right"></i> ' ~ kpi.variacao_mes|abs ~ '%</span> vs. mês anterior' %}{% endif %}
+    {{ m.kpi('Ofícios em ' ~ kpi.mes_nome, kpi.total_mes, 'file-earmark-plus', 'tom-azul', var) }}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {{ m.kpi('Pendentes', kpi.pendentes, 'hourglass-split', 'tom-ambar', 'aguardando execução') }}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {{ m.kpi('Executados', kpi.executados, 'check2-circle', 'tom-verde', kpi.taxa_execucao ~ '% do total') }}
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    {{ m.kpi('Total registrado', kpi.total_geral, 'archive', 'tom-azul', 'desde o início') }}
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-8">
+    <div class="card h-100">
+      <div class="card-header"><h2>Ofícios por mês</h2><span class="small text-muted">últimos 12 meses</span></div>
+      <div class="card-body"><div class="grafico"><canvas id="grafico-serie" aria-label="Gráfico de ofícios por mês" role="img"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card h-100">
+      <div class="card-header"><h2>Situação geral</h2></div>
+      <div class="card-body"><div class="grafico"><canvas id="grafico-status" aria-label="Gráfico executados e pendentes" role="img"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-xl-5">
+    <div class="card h-100">
+      <div class="card-header"><h2>Por secretaria</h2><a class="small" href="{{ url_for('relatorios.graficos') }}">Ver relatórios</a></div>
+      <div class="card-body"><div class="grafico"><canvas id="grafico-secretarias" aria-label="Gráfico por secretaria" role="img"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-xl-7">
+    <div class="card h-100">
+      <div class="card-header"><h2>Últimos ofícios</h2><a class="small" href="{{ url_for('oficios.lista') }}">Ver todos</a></div>
+      {% if ultimos %}
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead><tr><th>Número</th><th>Assunto</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for o in ultimos %}
+            <tr class="linha-link" data-href="{{ url_for('oficios.detalhe', oficio_id=o.id) }}">
+              <td class="mono fw-semibold text-nowrap">{{ o.numero }}</td>
+              <td class="assunto"><a class="d-block text-truncate" href="{{ url_for('oficios.detalhe', oficio_id=o.id) }}">{{ o.assunto }}</a>
+                <div class="sub">{{ o.departamento.sigla }} · {{ o.data_criacao|data_br }}</div></td>
+              <td>{{ m.status(o) }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        {{ m.vazio('inbox', 'Nenhum ofício ainda', 'Crie o primeiro pelo botão "Novo ofício".') }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="dados-serie">{{ serie|tojson }}</script>
+<script type="application/json" id="dados-status">{{ {'executados': kpi.executados, 'pendentes': kpi.pendentes}|tojson }}</script>
+<script type="application/json" id="dados-secretarias">{{ secretarias|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/graficos.js') }}"></script>
+{% endblock %}

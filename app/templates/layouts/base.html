@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Gestão de Ofícios{% endblock %} · {{ GABINETE_NOME }}</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+  <script src="{{ url_for('static', filename='js/tema.js') }}"></script>
+  <link href="{{ url_for('static', filename='vendor/inter/inter.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <a href="#conteudo" class="visually-hidden-focusable">Pular para o conteúdo</a>
+  {% set ep = request.endpoint or '' %}
+  <div class="app">
+    <aside class="sidebar" aria-label="Menu principal">
+      <a class="marca" href="{{ url_for('main.dashboard') }}">
+        <span class="logo"><i class="bi bi-file-earmark-text"></i></span>
+        <span>Gestão de Ofícios<small>{{ GABINETE_NOME }}</small></span>
+      </a>
+      <nav class="nav flex-column">
+        <a class="nav-link {{ 'ativo' if ep == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-1x2"></i>Início</a>
+
+        <div class="secao">Ofícios</div>
+        <a class="nav-link {{ 'ativo' if ep in ('oficios.lista', 'oficios.detalhe', 'oficios.editar', 'oficios.renumerar') }}" href="{{ url_for('oficios.lista') }}"><i class="bi bi-files"></i>Todos os ofícios</a>
+        {% if current_user.tem_perfil('admin', 'assessor') %}
+        <a class="nav-link {{ 'ativo' if ep in ('oficios.novo', 'oficios.confirmar') }}" href="{{ url_for('oficios.novo') }}"><i class="bi bi-plus-square"></i>Novo ofício</a>
+        <a class="nav-link {{ 'ativo' if ep == 'oficios.registrar_manual' }}" href="{{ url_for('oficios.registrar_manual') }}"><i class="bi bi-pencil-square"></i>Registro manual</a>
+        {% endif %}
+        <a class="nav-link {{ 'ativo' if ep.startswith('modelos.') }}" href="{{ url_for('modelos.lista') }}"><i class="bi bi-layout-text-sidebar-reverse"></i>Modelos</a>
+        <a class="nav-link {{ 'ativo' if ep.startswith('numeracao.') }}" href="{{ url_for('numeracao.controle') }}"><i class="bi bi-123"></i>Numeração</a>
+
+        <div class="secao">Relatórios</div>
+        <a class="nav-link {{ 'ativo' if ep == 'relatorios.graficos' }}" href="{{ url_for('relatorios.graficos') }}"><i class="bi bi-bar-chart-line"></i>Gráficos</a>
+        <a class="nav-link {{ 'ativo' if ep == 'relatorios.fechamento' }}" href="{{ url_for('relatorios.fechamento') }}"><i class="bi bi-calendar2-check"></i>Fechamento mensal</a>
+
+        {% if current_user.tem_perfil('admin') %}
+        <div class="secao">Administração</div>
+        <a class="nav-link {{ 'ativo' if ep == 'admin.usuarios' }}" href="{{ url_for('admin.usuarios') }}"><i class="bi bi-people"></i>Usuários</a>
+        <a class="nav-link {{ 'ativo' if ep == 'admin.log_auditoria' }}" href="{{ url_for('admin.log_auditoria') }}"><i class="bi bi-shield-check"></i>Auditoria</a>
+        {% endif %}
+      </nav>
+      <div class="rodape">v2.0 · Flask + MySQL</div>
+    </aside>
+    <div class="sidebar-fundo"></div>
+
+    <div class="conteudo">
+      <header class="topbar">
+        <button class="btn btn-light-outline btn-icon d-lg-none" type="button" data-abrir-menu aria-label="Abrir menu">
+          <i class="bi bi-list"></i>
+        </button>
+        <div class="titulo flex-grow-1 min-w-0">
+          {% block breadcrumb %}{% endblock %}
+          <h1 class="text-truncate">{% block page_title %}{% endblock %}</h1>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          {% block acoes %}
+          {% if current_user.tem_perfil('admin', 'assessor') and ep not in ('oficios.novo', 'oficios.confirmar') %}
+          <a href="{{ url_for('oficios.novo') }}" class="btn btn-primary d-none d-sm-inline-flex align-items-center gap-2">
+            <i class="bi bi-plus-lg"></i>Novo ofício
+          </a>
+          {% endif %}
+          {% endblock %}
+          <button class="btn btn-light-outline btn-icon" type="button" data-alternar-tema aria-label="Alternar tema claro/escuro" title="Alternar tema">
+            <i class="bi bi-circle-half"></i>
+          </button>
+          <div class="dropdown">
+            <button class="btn p-0 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu do usuário">
+              <span class="avatar">{{ current_user.iniciais }}</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end">
+              <div class="px-2 py-1 mb-1">
+                <div class="fw-semibold">{{ current_user.nome }}</div>
+                <div class="small text-muted">{{ current_user.email }}</div>
+                <span class="badge-sigla mt-1">{{ current_user.perfil_nome }}</span>
+              </div>
+              <hr class="dropdown-divider">
+              <form method="post" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right me-2"></i>Sair</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main id="conteudo" class="pagina">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <div id="toasts" class="toast-container position-fixed top-0 end-0 p-3" aria-live="polite"></div>
+  {% with mensagens = get_flashed_messages(with_categories=true) %}
+    {% for categoria, mensagem in mensagens %}
+      <div hidden data-flash="{{ mensagem }}" data-tipo="{{ 'danger' if categoria == 'error' else categoria }}"></div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="modal fade" id="modalConfirmar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body p-4">
+          <div class="d-flex gap-3">
+            <span class="kpi p-0"><span class="icone tom-vermelho"><i class="bi bi-exclamation-triangle"></i></span></span>
+            <div>
+              <h2 class="h6 fw-semibold mb-1" data-titulo>Confirmar ação</h2>
+              <p class="text-muted mb-0" data-msg></p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light-outline" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger" data-ok>Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

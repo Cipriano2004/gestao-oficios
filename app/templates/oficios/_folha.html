@@ -1,0 +1,19 @@
+{# Pré-visualização do ofício no mesmo layout do documento Word #}
+<div class="folha-wrap">
+  <article class="folha" aria-label="Pré-visualização do ofício">
+    <p class="dir mb-1">OFÍCIO Nº {{ oficio.numero }}.</p>
+    <p class="dir mb-4">{{ config['CIDADE'] }}, {{ data_extenso }}.</p>
+    <p class="neg mb-0">{{ oficio.destinatario }}</p>
+    <p class="neg mb-4">{{ oficio.cargo_destinatario }}</p>
+    <p class="neg mb-4">ASSUNTO: {{ oficio.assunto.rstrip('.') }}.</p>
+    <div class="corpo">
+      {% for linha in (oficio.corpo_oficio or '').split('\n') if linha.strip() %}<p>{{ linha.strip() }}</p>{% endfor %}
+    </div>
+    <div class="assinatura">
+      <p class="mb-2">Atenciosamente,</p>
+      <p class="mb-1">______________________</p>
+      <p class="neg mb-0">{{ oficio.nome_responsavel or config['RESPONSAVEL_NOME'] }}</p>
+      <p class="mb-0">{{ oficio.cargo_responsavel or config['RESPONSAVEL_CARGO'] }}</p>
+    </div>
+  </article>
+</div>

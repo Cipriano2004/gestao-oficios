@@ -1,0 +1,59 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}{{ 'Editar modelo' if modelo else 'Novo modelo' }}{% endblock %}
+{% block breadcrumb %}<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ url_for('modelos.lista') }}">Modelos</a></li><li class="breadcrumb-item active">{{ modelo.titulo if modelo else 'Novo' }}</li></ol></nav>{% endblock %}
+{% block page_title %}{{ 'Editar modelo' if modelo else 'Novo modelo' }}{% endblock %}
+
+{% block content %}
+<form id="form-oficio" method="post" novalidate>
+  {{ m.csrf() }}
+  <div class="row g-3">
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-7">
+              <label class="form-label" for="titulo">Título *</label>
+              <input class="form-control" id="titulo" name="titulo" required maxlength="200" value="{{ form.get('titulo', '') }}" placeholder="Ex.: Poda de árvore">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label" for="departamento_id">Secretaria *</label>
+              <select class="form-select" id="departamento_id" name="departamento_id" required>
+                <option value="">Selecione…</option>
+                {% for d in departamentos %}<option value="{{ d.id }}" {{ 'selected' if form.get('departamento_id')|string == d.id|string }}>{{ d.sigla }} · {{ d.nome }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="assunto">Assunto *</label>
+              <input class="form-control" id="assunto" name="assunto" required maxlength="300" value="{{ form.get('assunto', '') }}" placeholder="Solicita poda de árvore na [ENDEREÇO], nº [NÚMERO] - [BAIRRO].">
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="corpo_oficio">Texto *</label>
+              <textarea class="form-control" id="corpo_oficio" name="corpo_texto" rows="14" required>{{ form.get('corpo_texto', '') }}</textarea>
+              <div class="form-text">Cada linha vira um parágrafo. Linhas em branco separam blocos.</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body border-top d-flex gap-2 justify-content-end">
+          <a class="btn btn-light-outline" href="{{ url_for('modelos.lista') }}">Cancelar</a>
+          <button class="btn btn-primary" type="submit"><i class="bi bi-check2 me-1"></i>Salvar modelo</button>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-header"><h2>Placeholders</h2></div>
+        <div class="card-body">
+          <p class="small text-muted">Clique para inserir. Ao criar o ofício eles viram os dados preenchidos no formulário.</p>
+          <ul class="list-unstyled small mb-0">
+            {% for ph, desc in placeholders %}
+            <li class="d-flex align-items-center gap-2 mb-1"><button type="button" class="chip-ph" data-ph="{{ ph }}">{{ ph }}</button><span class="text-muted">{{ desc }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/oficio-form.js') }}"></script>{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}Renumerar {{ oficio.numero }}{% endblock %}
+{% block breadcrumb %}<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ url_for('oficios.lista') }}">Ofícios</a></li><li class="breadcrumb-item"><a href="{{ url_for('oficios.detalhe', oficio_id=oficio.id) }}">{{ oficio.numero }}</a></li><li class="breadcrumb-item active">Renumerar</li></ol></nav>{% endblock %}
+{% block page_title %}Renumerar ofício{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 560px">
+  <div class="card-body">
+    <p class="text-muted">Número atual: <span class="mono fw-semibold text-body">{{ oficio.numero }}</span></p>
+    <p class="small text-muted">{{ oficio.assunto }}</p>
+    <form method="post">
+      {{ m.csrf() }}
+      <label class="form-label" for="novo_numero">Novo número</label>
+      <input class="form-control mono mb-1" id="novo_numero" name="novo_numero" required value="{{ request.form.get('novo_numero', oficio.numero) }}">
+      <div class="form-text mb-3">Formato 000/AAAA. O sistema bloqueia números já usados. A alteração fica na auditoria.</div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-check2 me-1"></i>Salvar número</button>
+        <a class="btn btn-light-outline" href="{{ url_for('oficios.detalhe', oficio_id=oficio.id) }}">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

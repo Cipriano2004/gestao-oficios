@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+
+# Testes e ferramentas
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Configuração local e segredos — NUNCA versionar
+.env
+.env.*
+!.env.example
+instance/
+client_secret*.json
+*token*.json
+credentials*.json
+*.pem
+*.key
+
+# Dados (podem conter informações pessoais de munícipes)
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.zip
+*.docx
+*.xlsx
+*.csv
+backup*/
+gerados/
+
+# Sistema / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

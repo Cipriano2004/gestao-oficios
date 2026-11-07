@@ -1,0 +1,94 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}Fechamento {{ r.nome_mes }}/{{ r.ano }}{% endblock %}
+{% block page_title %}Fechamento mensal{% endblock %}
+{% block acoes %}
+<button class="btn btn-light-outline d-inline-flex align-items-center gap-2" type="button" data-imprimir><i class="bi bi-printer"></i><span class="d-none d-sm-inline">Imprimir / PDF</span></button>
+<a class="btn btn-primary d-inline-flex align-items-center gap-2" href="{{ url_for('relatorios.exportar', mes='%d-%02d'|format(r.ano, r.mes)) }}"><i class="bi bi-file-earmark-spreadsheet"></i><span class="d-none d-sm-inline">Excel</span></a>
+{% endblock %}
+
+{% block content %}
+<div class="so-impressao mb-3">
+  <h1 class="h4 fw-bold mb-0">Relatório mensal de ofícios — {{ r.nome_mes }}/{{ r.ano }}</h1>
+  <div class="small">{{ GABINETE_NOME }} · gerado em {{ gerado_em|data_hora_br }}</div>
+</div>
+
+<form method="get" class="card mb-3 nao-imprimir">
+  <div class="card-body d-flex flex-wrap gap-2 align-items-end">
+    <div><label class="form-label" for="mes">Mês</label>
+      <select class="form-select" id="mes" name="mes" data-auto-submit>
+        {% for i in range(1, 13) %}<option value="{{ i }}" {{ 'selected' if i == r.mes }}>{{ nome_mes(i, True) }}</option>{% endfor %}
+      </select></div>
+    <div><label class="form-label" for="ano">Ano</label>
+      <select class="form-select" id="ano" name="ano" data-auto-submit>
+        {% for a in meses|map(attribute=0)|unique %}<option {{ 'selected' if a == r.ano }}>{{ a }}</option>{% endfor %}
+      </select></div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-sm-6 col-xl-3">{{ m.kpi('Ofícios no mês', r.total, 'files', 'tom-azul') }}</div>
+  <div class="col-sm-6 col-xl-3">{{ m.kpi('Executados', r.executados, 'check2-circle', 'tom-verde', r.pct_executados ~ '%') }}</div>
+  <div class="col-sm-6 col-xl-3">{{ m.kpi('Pendentes', r.pendentes, 'hourglass-split', 'tom-ambar', r.pct_pendentes ~ '%') }}</div>
+  <div class="col-sm-6 col-xl-3">{{ m.kpi('Munícipes atendidos', r.total_municipes, 'people', 'tom-azul', 'nomes distintos') }}</div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header"><h2><i class="bi bi-card-text me-2"></i>Resumo para reunião</h2></div>
+  <div class="card-body"><p class="mb-0 lh-lg">{{ r.resumo }}</p></div>
+</div>
+
+{% if r.total %}
+<div class="row g-3 mb-3">
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header"><h2>Pedidos por secretaria</h2></div>
+      <div class="card-body"><div class="grafico"><canvas id="grafico-fech-secretarias" role="img" aria-label="Pedidos por secretaria"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header"><h2>Pedidos por assessor</h2></div>
+      <div class="card-body">
+        <ul class="barra-lista">
+          {% for a in r.assessores %}
+          <li><div class="topo"><span class="text-truncate">{{ a.nome }}</span><span class="fw-semibold">{{ a.count }} <span class="text-muted fw-normal">· {{ a.percentage }}%</span></span></div>
+            <div class="trilho"><div class="preenchido" style="width: {{ a.percentage }}%"></div></div></li>
+          {% endfor %}
+        </ul>
+        <div class="grafico-sm mt-3"><canvas id="grafico-fech-status" role="img" aria-label="Executados e pendentes"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>Ofícios do mês</h2><span class="badge-sigla">{{ r.total }}</span></div>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead><tr><th>Número</th><th>Assunto</th><th>Secretaria</th><th>Assessor</th><th>Data</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for o in r.oficios %}
+        <tr>
+          <td class="mono fw-semibold text-nowrap"><a href="{{ url_for('oficios.detalhe', oficio_id=o.id) }}">{{ o.numero }}</a></td>
+          <td class="small">{{ o.assunto }}</td>
+          <td>{{ m.sigla(o.departamento) }}</td>
+          <td class="small">{{ o.assessor_nome or '—' }}</td>
+          <td class="small text-nowrap">{{ o.data_criacao|data_br }}</td>
+          <td>{{ m.status(o) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<script type="application/json" id="dados-fechamento">{{ {'secretarias': r.secretarias, 'executados': r.executados, 'pendentes': r.pendentes}|tojson }}</script>
+{% else %}
+<div class="card">{{ m.vazio('calendar-x', 'Nenhum ofício neste mês', 'Escolha outro mês no filtro acima.') }}</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.js') }}"></script>
+<script src="{{ url_for('static', filename='js/graficos.js') }}"></script>
+{% endblock %}

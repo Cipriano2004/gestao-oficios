@@ -1,0 +1,26 @@
+[project]
+name = "gestao-oficios"
+version = "2.0.0"
+description = "Sistema web para criação, numeração e acompanhamento de ofícios de gabinete legislativo."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/services/seed.py"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "W"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"app/services/templates_padrao.py" = ["E501"]

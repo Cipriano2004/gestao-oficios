@@ -1,0 +1,93 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}Usuários{% endblock %}
+{% block page_title %}Usuários{% endblock %}
+{% block acoes %}{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-header"><h2>{{ usuarios|length }} usuário(s)</h2></div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Nome</th><th>Perfil</th><th class="d-none d-md-table-cell">Último acesso</th><th>Situação</th><th class="text-end"><span class="visually-hidden">Ações</span></th></tr></thead>
+          <tbody>
+          {% for u in usuarios %}
+            <tr>
+              <td><div class="d-flex align-items-center gap-2"><span class="avatar">{{ u.iniciais }}</span>
+                <div><div class="fw-semibold">{{ u.nome }}{% if u.id == current_user.id %} <span class="small text-muted">(você)</span>{% endif %}</div><div class="sub">{{ u.email }}</div></div></div></td>
+              <td><span class="badge-sigla">{{ u.perfil_nome }}</span></td>
+              <td class="d-none d-md-table-cell small">{{ u.ultimo_login|data_hora_br or 'nunca' }}</td>
+              <td>{% if u.ativo %}<span class="badge-status executado">Ativo</span>{% else %}<span class="badge-status pendente">Inativo</span>{% endif %}</td>
+              <td class="text-end">
+                {% if u.id != current_user.id %}
+                <div class="dropdown">
+                  <button class="btn btn-light-outline btn-sm btn-icon" data-bs-toggle="dropdown" aria-label="Ações para {{ u.nome }}"><i class="bi bi-three-dots"></i></button>
+                  <div class="dropdown-menu dropdown-menu-end p-2" style="min-width: 240px">
+                    <form method="post" action="{{ url_for('admin.alterar_usuario', usuario_id=u.id) }}" class="mb-2">
+                      {{ m.csrf() }}<input type="hidden" name="acao" value="perfil">
+                      <label class="form-label small" for="perfil-{{ u.id }}">Perfil</label>
+                      <div class="input-group input-group-sm">
+                        <select class="form-select" id="perfil-{{ u.id }}" name="perfil">{% for k, v in perfis.items() %}<option value="{{ k }}" {{ 'selected' if u.perfil == k }}>{{ v }}</option>{% endfor %}</select>
+                        <button class="btn btn-primary" type="submit">Salvar</button>
+                      </div>
+                    </form>
+                    <form method="post" action="{{ url_for('admin.alterar_usuario', usuario_id=u.id) }}" class="mb-2">
+                      {{ m.csrf() }}<input type="hidden" name="acao" value="senha">
+                      <label class="form-label small" for="senha-{{ u.id }}">Nova senha</label>
+                      <div class="input-group input-group-sm">
+                        <input class="form-control" type="password" id="senha-{{ u.id }}" name="senha" minlength="10" autocomplete="new-password" required>
+                        <button class="btn btn-light-outline" type="submit">Trocar</button>
+                      </div>
+                    </form>
+                    <form method="post" action="{{ url_for('admin.alterar_usuario', usuario_id=u.id) }}" data-confirmar="{{ 'O usuário perderá o acesso imediatamente.' if u.ativo else 'O usuário voltará a ter acesso.' }}" data-titulo="{{ 'Desativar' if u.ativo else 'Reativar' }} {{ u.nome }}?">
+                      {{ m.csrf() }}<input type="hidden" name="acao" value="{{ 'desativar' if u.ativo else 'ativar' }}">
+                      <button class="dropdown-item {{ 'text-danger' if u.ativo }}" type="submit"><i class="bi bi-{{ 'person-x' if u.ativo else 'person-check' }} me-2"></i>{{ 'Desativar' if u.ativo else 'Reativar' }}</button>
+                    </form>
+                  </div>
+                </div>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card mb-3">
+      <div class="card-header"><h2>Novo usuário</h2></div>
+      <div class="card-body">
+        <form method="post">
+          {{ m.csrf() }}
+          <div class="mb-2"><label class="form-label" for="nome">Nome</label><input class="form-control" id="nome" name="nome" required maxlength="120" value="{{ request.form.get('nome', '') }}"></div>
+          <div class="mb-2"><label class="form-label" for="email">E-mail</label><input class="form-control" id="email" name="email" type="email" required maxlength="160" value="{{ request.form.get('email', '') }}" autocomplete="off"></div>
+          <div class="mb-2"><label class="form-label" for="senha">Senha inicial</label><input class="form-control" id="senha" name="senha" type="password" required minlength="10" autocomplete="new-password">
+            <div class="form-text">Mínimo de 10 caracteres, com letras e números.</div></div>
+          <div class="mb-3"><label class="form-label" for="perfil">Perfil</label>
+            <select class="form-select" id="perfil" name="perfil">{% for k, v in perfis.items() %}<option value="{{ k }}" {{ 'selected' if k == 'assessor' }}>{{ v }}</option>{% endfor %}</select></div>
+          <button class="btn btn-primary w-100" type="submit"><i class="bi bi-person-plus me-1"></i>Criar usuário</button>
+        </form>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h2>Permissões por perfil</h2></div>
+      <div class="table-responsive">
+        <table class="table table-sm small text-center">
+          <thead><tr><th class="text-start">Ação</th><th>Admin</th><th>Assessor</th><th>Leitura</th></tr></thead>
+          <tbody>
+            {% set s = '<i class="bi bi-check-lg text-success" aria-label="sim"></i>'|safe %}{% set n = '<i class="bi bi-dash text-muted" aria-label="não"></i>'|safe %}
+            <tr><td class="text-start">Consultar e relatórios</td><td>{{ s }}</td><td>{{ s }}</td><td>{{ s }}</td></tr>
+            <tr><td class="text-start">Criar e editar ofícios</td><td>{{ s }}</td><td>{{ s }}</td><td>{{ n }}</td></tr>
+            <tr><td class="text-start">Modelos</td><td>{{ s }}</td><td>{{ s }}</td><td>{{ n }}</td></tr>
+            <tr><td class="text-start">Excluir, renumerar, reservar</td><td>{{ s }}</td><td>{{ n }}</td><td>{{ n }}</td></tr>
+            <tr><td class="text-start">Usuários e auditoria</td><td>{{ s }}</td><td>{{ n }}</td><td>{{ n }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

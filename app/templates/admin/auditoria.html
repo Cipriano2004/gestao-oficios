@@ -1,0 +1,58 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}Auditoria{% endblock %}
+{% block page_title %}Trilha de auditoria{% endblock %}
+{% block acoes %}{% endblock %}
+
+{% set cores = {'LOGIN': 'tom-verde', 'LOGOUT': 'tom-azul', 'LOGIN_FALHOU': 'tom-vermelho', 'EXCLUIR': 'tom-vermelho',
+                'CRIAR': 'tom-azul', 'EDITAR': 'tom-ambar', 'RENUMERAR': 'tom-ambar', 'RESERVAR': 'tom-ambar',
+                'LIBERAR': 'tom-ambar', 'EXPORTAR': 'tom-azul', 'CONFIG': 'tom-ambar'} %}
+
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4">{{ m.kpi('Eventos no filtro', paginacao.total, 'list-check', 'tom-azul') }}</div>
+  <div class="col-md-4">{{ m.kpi('Falhas de login (24h)', falhas_24h, 'shield-exclamation', 'tom-vermelho' if falhas_24h else 'tom-verde', 'possível força bruta se o número subir' if falhas_24h else 'nenhuma tentativa suspeita') }}</div>
+  <div class="col-md-4">{{ m.kpi('Retenção exibida', dias ~ ' dias' if dias else 'tudo', 'clock-history', 'tom-azul') }}</div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="get" class="filtros">
+      <div class="campo"><label class="form-label" for="acao">Ação</label>
+        <select class="form-select" id="acao" name="acao" data-auto-submit><option value="">Todas</option>
+          {% for k, v in acoes.items() %}<option value="{{ k }}" {{ 'selected' if acao == k }}>{{ v }}</option>{% endfor %}</select></div>
+      <div class="campo"><label class="form-label" for="usuario_id">Usuário</label>
+        <select class="form-select" id="usuario_id" name="usuario_id" data-auto-submit><option value="">Todos</option>
+          {% for u in usuarios %}<option value="{{ u.id }}" {{ 'selected' if usuario_id == u.id }}>{{ u.nome }}</option>{% endfor %}</select></div>
+      <div class="campo"><label class="form-label" for="dias">Período</label>
+        <select class="form-select" id="dias" name="dias" data-auto-submit>
+          {% for d, r in [(1, 'Últimas 24 horas'), (7, 'Últimos 7 dias'), (30, 'Últimos 30 dias'), (90, 'Últimos 90 dias'), (0, 'Tudo')] %}<option value="{{ d }}" {{ 'selected' if dias == d }}>{{ r }}</option>{% endfor %}</select></div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  {% if paginacao.items %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>Quando</th><th>Ação</th><th>Usuário</th><th>Alvo</th><th class="d-none d-lg-table-cell">Detalhes</th><th>IP</th></tr></thead>
+      <tbody>
+      {% for log in paginacao.items %}
+        <tr>
+          <td class="small text-nowrap mono">{{ log.criado_em|data_hora_br }}</td>
+          <td><span class="badge-status {{ cores.get(log.acao, 'tom-azul') }}">{{ log.acao_nome }}</span></td>
+          <td class="small">{{ log.usuario.nome if log.usuario else (log.usuario_email or '—') }}</td>
+          <td class="small text-nowrap">{% if log.entidade %}{{ log.entidade }}{% if log.entidade_id %} #{{ log.entidade_id }}{% endif %}{% else %}—{% endif %}</td>
+          <td class="d-none d-lg-table-cell small text-muted mono text-truncate" style="max-width: 340px" title="{{ log.detalhes or '' }}">{{ log.detalhes or '' }}</td>
+          <td class="small mono">{{ log.ip or '—' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if paginacao.pages > 1 %}<div class="card-body border-top">{{ m.paginacao(paginacao, 'admin.log_auditoria') }}</div>{% endif %}
+  {% else %}
+    {{ m.vazio('shield-check', 'Nenhum evento no filtro') }}
+  {% endif %}
+</div>
+{% endblock %}

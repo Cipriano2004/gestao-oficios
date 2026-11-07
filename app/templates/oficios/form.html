@@ -1,0 +1,213 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% set titulos = {'novo': 'Novo ofício', 'manual': 'Registro manual', 'editar': 'Editar ofício ' ~ (oficio.numero if oficio else '')} %}
+{% block title %}{{ titulos[modo] }}{% endblock %}
+{% block breadcrumb %}<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ url_for('oficios.lista') }}">Ofícios</a></li><li class="breadcrumb-item active">{{ titulos[modo] }}</li></ol></nav>{% endblock %}
+{% block page_title %}{{ titulos[modo] }}{% endblock %}
+
+{% block content %}
+{% set acao = url_for('oficios.novo') if modo == 'novo' else (url_for('oficios.registrar_manual') if modo == 'manual' else url_for('oficios.editar', oficio_id=oficio.id)) %}
+
+<ol class="stepper" aria-label="Etapas">
+  <li class="ativo"><span class="num">1</span><span class="d-none d-sm-inline">Destino</span></li>
+  <li><span class="num">2</span><span class="d-none d-sm-inline">Atendimento</span></li>
+  <li><span class="num">3</span><span class="d-none d-sm-inline">Texto</span></li>
+  {% if modo == 'novo' %}<li><span class="num">4</span><span class="d-none d-sm-inline">Revisão</span></li>{% endif %}
+</ol>
+
+{% if modo == 'manual' %}
+<div class="alert alert-info d-flex gap-2 small"><i class="bi bi-info-circle"></i>
+  <div>Use para ofícios cujo número foi definido fora do sistema. O número informado é validado contra duplicidade.</div></div>
+{% endif %}
+
+<form id="form-oficio" method="post" action="{{ acao }}" novalidate>
+  {{ m.csrf() }}
+
+  {# ---------------- Passo 1: destino ---------------- #}
+  <section class="passo">
+    <div class="card mb-3">
+      <div class="card-header"><h2>Para quem é o ofício?</h2></div>
+      <div class="card-body">
+        <div class="row g-3">
+          {% if modo == 'manual' %}
+          <div class="col-md-3">
+            <label class="form-label" for="numero">Número do ofício *</label>
+            <input class="form-control mono" id="numero" name="numero" required placeholder="045/2026" value="{{ form.get('numero', '') }}">
+            <div class="form-text">Formato 000/AAAA</div>
+          </div>
+          {% endif %}
+          <div class="{{ 'col-md-4' if modo == 'manual' else 'col-md-6' }}">
+            <label class="form-label" for="departamento_id">Secretaria *</label>
+            <select class="form-select" id="departamento_id" name="departamento_id" required>
+              <option value="">Selecione…</option>
+              {% for d in departamentos %}
+              <option value="{{ d.id }}" {{ 'selected' if form.get('departamento_id')|string == d.id|string }}>{{ d.sigla }} · {{ d.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="{{ 'col-md-5' if modo == 'manual' else 'col-md-6' }}">
+            <label class="form-label" for="secretario_id">Destinatário *</label>
+            <select class="form-select" id="secretario_id" name="secretario_id" data-inicial="{{ form.get('secretario_id', '') }}" {{ 'required' if not form.get('destinatario') }}>
+              <option value="">Selecione a secretaria primeiro</option>
+            </select>
+            {% if form.get('destinatario') and not form.get('secretario_id') %}
+            <div class="form-text">Atual: {{ form.get('destinatario') }} — {{ form.get('cargo_destinatario') }}</div>
+            <input type="hidden" name="destinatario" value="{{ form.get('destinatario') }}">
+            <input type="hidden" name="cargo_destinatario" value="{{ form.get('cargo_destinatario') }}">
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if modo != 'editar' %}
+    <div class="card mb-3">
+      <div class="card-header"><h2>Modelo de texto</h2><span class="small text-muted">opcional</span></div>
+      <div class="card-body">
+        <div class="row g-2" id="lista-modelos">
+          <p class="text-muted small mb-0">Escolha a secretaria para ver os modelos disponíveis.</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-end gap-2">
+      <a href="{{ url_for('oficios.lista') }}" class="btn btn-light-outline">Cancelar</a>
+      <button type="button" class="btn btn-primary" data-proximo>Continuar <i class="bi bi-arrow-right ms-1"></i></button>
+    </div>
+  </section>
+
+  {# ---------------- Passo 2: atendimento ---------------- #}
+  <section class="passo" hidden>
+    <div class="card mb-3">
+      <div class="card-header"><h2>Local da demanda</h2></div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label" for="endereco">Rua / avenida</label>
+            <input class="form-control" id="endereco" name="endereco" maxlength="200" value="{{ form.get('endereco', '') }}" placeholder="Rua das Flores">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label" for="numero_endereco">Número</label>
+            <input class="form-control" id="numero_endereco" name="numero_endereco" maxlength="20" value="{{ form.get('numero_endereco', '') }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="bairro">Bairro</label>
+            <input class="form-control" id="bairro" name="bairro" maxlength="100" value="{{ form.get('bairro', '') }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="em_frente">Ponto de referência / horário</label>
+            <input class="form-control" id="em_frente" name="em_frente" maxlength="200" value="{{ form.get('em_frente', '') }}" placeholder="Ex.: em frente à UBS · ou o horário do evento">
+            <div class="form-text">Preenche os campos <code>[EM_FRENTE]</code> e <code>[HORARIO]</code> dos modelos.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><h2>Atendimento</h2><span class="small text-muted">uso interno</span></div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label" for="assessor_nome">Assessor responsável</label>
+            <input class="form-control" id="assessor_nome" name="assessor_nome" list="lista-assessores" maxlength="100" value="{{ form.get('assessor_nome', '') }}">
+            <datalist id="lista-assessores">{% for a in assessores %}<option value="{{ a }}">{% endfor %}</datalist>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label" for="municipe_tratamento">Tratamento</label>
+            <select class="form-select" id="municipe_tratamento" name="municipe_tratamento">
+              {% for t in tratamentos %}<option value="{{ t }}" {{ 'selected' if form.get('municipe_tratamento', '') == t }}>{{ t or '—' }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="municipe_nome">Munícipe atendido</label>
+            <input class="form-control" id="municipe_nome" name="municipe_nome" maxlength="120" value="{{ form.get('municipe_nome', '') }}" autocomplete="off">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="municipe_telefone">Telefone do munícipe</label>
+            <input class="form-control" id="municipe_telefone" name="municipe_telefone" maxlength="30" inputmode="tel" value="{{ form.get('municipe_telefone', '') }}" placeholder="(11) 90000-0000" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-text mt-2"><i class="bi bi-lock me-1"></i>Dados pessoais ficam só no banco do gabinete e aparecem no documento apenas se o modelo usar o placeholder.</div>
+      </div>
+    </div>
+
+    <details class="card mb-3" {{ 'open' if form.get('data_evento') }}>
+      <summary class="card-header" style="cursor:pointer"><h2>Evento ou fechamento de rua</h2><span class="small text-muted">opcional</span></summary>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4"><label class="form-label" for="data_evento">Data do evento</label>
+            <input class="form-control" id="data_evento" name="data_evento" value="{{ form.get('data_evento', '') }}" placeholder="15/12/2026"></div>
+          <div class="col-md-4"><label class="form-label" for="hora_inicio">Hora de início</label>
+            <input class="form-control" id="hora_inicio" name="hora_inicio" value="{{ form.get('hora_inicio', '') }}" placeholder="09h"></div>
+          <div class="col-md-4"><label class="form-label" for="hora_fim">Hora de término</label>
+            <input class="form-control" id="hora_fim" name="hora_fim" value="{{ form.get('hora_fim', '') }}" placeholder="17h"></div>
+          <div class="col-md-6"><label class="form-label" for="numero_inicio">Do número</label>
+            <input class="form-control" id="numero_inicio" name="numero_inicio" value="{{ form.get('numero_inicio', '') }}"></div>
+          <div class="col-md-6"><label class="form-label" for="numero_fim">Até o número</label>
+            <input class="form-control" id="numero_fim" name="numero_fim" value="{{ form.get('numero_fim', '') }}"></div>
+        </div>
+      </div>
+    </details>
+
+    <div class="d-flex justify-content-between gap-2">
+      <button type="button" class="btn btn-light-outline" data-anterior><i class="bi bi-arrow-left me-1"></i>Voltar</button>
+      <button type="button" class="btn btn-primary" data-proximo>Continuar <i class="bi bi-arrow-right ms-1"></i></button>
+    </div>
+  </section>
+
+  {# ---------------- Passo 3: texto ---------------- #}
+  <section class="passo" hidden>
+    <div class="row g-3">
+      <div class="col-xl-8">
+        <div class="card mb-3">
+          <div class="card-header"><h2>Texto do ofício</h2></div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label" for="assunto">Assunto *</label>
+              <input class="form-control" id="assunto" name="assunto" required maxlength="300" value="{{ form.get('assunto', '') }}">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="corpo_oficio">Corpo</label>
+              <textarea class="form-control" id="corpo_oficio" name="corpo_oficio" rows="12">{{ form.get('corpo_oficio', '') }}</textarea>
+              <div class="form-text">Cada linha vira um parágrafo com recuo no documento Word.</div>
+            </div>
+            <div class="row g-3">
+              <div class="col-md-7"><label class="form-label" for="nome_responsavel">Assinatura</label>
+                <input class="form-control" id="nome_responsavel" name="nome_responsavel" maxlength="100" value="{{ form.get('nome_responsavel') or config['RESPONSAVEL_NOME'] }}"></div>
+              <div class="col-md-5"><label class="form-label" for="cargo_responsavel">Cargo</label>
+                <input class="form-control" id="cargo_responsavel" name="cargo_responsavel" maxlength="100" value="{{ form.get('cargo_responsavel') or config['RESPONSAVEL_CARGO'] }}"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-4">
+        <div class="card mb-3">
+          <div class="card-header"><h2>Placeholders</h2></div>
+          <div class="card-body">
+            <p class="small text-muted">Clique para inserir no campo selecionado. Eles são trocados pelos dados do passo 2.</p>
+            {% for ph, desc in placeholders %}
+              <button type="button" class="chip-ph" data-ph="{{ ph }}" title="{{ desc }}">{{ ph }}</button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between gap-2">
+      <button type="button" class="btn btn-light-outline" data-anterior><i class="bi bi-arrow-left me-1"></i>Voltar</button>
+      {% if modo == 'novo' %}
+        <button type="submit" class="btn btn-primary">Revisar ofício <i class="bi bi-eye ms-1"></i></button>
+      {% elif modo == 'manual' %}
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Registrar ofício</button>
+      {% else %}
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Salvar alterações</button>
+      {% endif %}
+    </div>
+  </section>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/oficio-form.js') }}"></script>
+{% endblock %}

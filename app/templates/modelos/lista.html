@@ -1,0 +1,58 @@
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as m %}
+{% block title %}Modelos{% endblock %}
+{% block page_title %}Modelos de ofício{% endblock %}
+{% block acoes %}
+{% if current_user.tem_perfil('admin', 'assessor') %}
+<a href="{{ url_for('modelos.novo') }}" class="btn btn-primary d-inline-flex align-items-center gap-2"><i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline">Novo modelo</span></a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+  <form method="get" class="d-flex gap-2 align-items-center">
+    <label class="form-label m-0 small text-muted" for="departamento_id">Secretaria</label>
+    <select class="form-select form-select-sm" id="departamento_id" name="departamento_id" data-auto-submit style="min-width: 220px">
+      <option value="">Todas</option>
+      {% for d in departamentos %}<option value="{{ d.id }}" {{ 'selected' if dep_id == d.id }}>{{ d.sigla }} · {{ d.nome }}</option>{% endfor %}
+    </select>
+  </form>
+  {% if current_user.tem_perfil('admin') %}
+  <form method="post" action="{{ url_for('modelos.recriar_padrao') }}" data-confirmar="Todos os modelos atuais serão apagados e substituídos pelos modelos padrão do sistema." data-titulo="Recriar modelos padrão?">
+    {{ m.csrf() }}
+    <button class="btn btn-light-outline btn-sm" type="submit"><i class="bi bi-arrow-counterclockwise me-1"></i>Recriar padrão</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if modelos %}
+<div class="row g-3">
+  {% for t in modelos %}
+  <div class="col-md-6 col-xxl-4">
+    <div class="card h-100">
+      <div class="card-body d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+          <h2 class="h6 fw-semibold mb-0">{{ t.titulo }}</h2>
+          {{ m.sigla(t.departamento) }}
+        </div>
+        <p class="small fw-medium mb-2">{{ t.assunto }}</p>
+        <p class="small text-muted mb-3" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">{{ t.corpo_texto }}</p>
+        <div class="mb-3">{% for ph in placeholders_usados(t.assunto ~ ' ' ~ t.corpo_texto) %}<span class="chip-ph">{{ ph }}</span>{% endfor %}</div>
+        {% if current_user.tem_perfil('admin', 'assessor') %}
+        <div class="d-flex gap-2 mt-auto">
+          <a class="btn btn-soft btn-sm" href="{{ url_for('modelos.editar', modelo_id=t.id) }}"><i class="bi bi-pencil me-1"></i>Editar</a>
+          <form method="post" action="{{ url_for('modelos.duplicar', modelo_id=t.id) }}">{{ m.csrf() }}
+            <button class="btn btn-light-outline btn-sm" type="submit"><i class="bi bi-copy me-1"></i>Duplicar</button></form>
+          <form method="post" action="{{ url_for('modelos.excluir', modelo_id=t.id) }}" class="ms-auto" data-confirmar="O modelo &quot;{{ t.titulo }}&quot; será excluído. Ofícios já criados não são afetados." data-titulo="Excluir modelo?">{{ m.csrf() }}
+            <button class="btn btn-light-outline btn-sm btn-icon text-danger" type="submit" aria-label="Excluir modelo {{ t.titulo }}"><i class="bi bi-trash"></i></button></form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">{{ m.vazio('layout-text-sidebar-reverse', 'Nenhum modelo cadastrado', 'Crie um modelo com placeholders para agilizar os ofícios.') }}</div>
+{% endif %}
+{% endblock %}

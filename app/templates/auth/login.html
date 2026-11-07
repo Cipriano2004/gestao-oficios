@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar · Gestão de Ofícios</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+  <script src="{{ url_for('static', filename='js/tema.js') }}"></script>
+  <link href="{{ url_for('static', filename='vendor/inter/inter.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
+</head>
+<body>
+  <main class="login-pagina">
+    <div class="w-100" style="max-width: 410px">
+      <div class="card login-card">
+        <span class="logo"><i class="bi bi-file-earmark-text"></i></span>
+        <h1 class="h4 fw-bold mb-1">Gestão de Ofícios</h1>
+        <p class="text-muted mb-4">{{ GABINETE_NOME }} · entre com sua conta</p>
+
+        {% with mensagens = get_flashed_messages(with_categories=true) %}
+          {% for categoria, mensagem in mensagens %}
+            <div class="alert alert-{{ 'danger' if categoria in ('danger', 'error') else ('warning' if categoria == 'warning' else 'info') }} py-2 small d-flex gap-2 align-items-center" role="alert">
+              <i class="bi bi-{{ 'exclamation-circle' if categoria in ('danger', 'error') else 'info-circle' }}"></i>{{ mensagem }}
+            </div>
+          {% endfor %}
+        {% endwith %}
+
+        <form method="post" novalidate>
+          {{ form.csrf_token }}
+          <div class="mb-3">
+            <label class="form-label" for="email">E-mail</label>
+            <div class="input-icone">
+              <i class="bi bi-envelope"></i>
+              {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), id="email", autocomplete="username", placeholder="voce@exemplo.com", autofocus=true) }}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="senha">Senha</label>
+            <div class="input-icone">
+              <i class="bi bi-lock"></i>
+              {{ form.senha(class="form-control", id="senha", autocomplete="current-password", placeholder="••••••••••") }}
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="form-check">
+              {{ form.lembrar(class="form-check-input", id="lembrar") }}
+              <label class="form-check-label small" for="lembrar">Manter conectado</label>
+            </div>
+          </div>
+          <button class="btn btn-primary w-100 py-2" type="submit"><i class="bi bi-box-arrow-in-right me-2"></i>Entrar</button>
+        </form>
+      </div>
+      <p class="text-center small text-muted mt-3 mb-0"><i class="bi bi-shield-lock me-1"></i>Acesso registrado em log de auditoria</p>
+    </div>
+  </main>
+</body>
+</html>
