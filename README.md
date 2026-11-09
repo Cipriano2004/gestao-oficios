@@ -10,6 +10,8 @@ Sistema web que automatiza a criação, a numeração e o acompanhamento de ofí
 
 ![Dashboard](docs/screenshots/dashboard-claro.png)
 
+🎬 **[Assista ao tour de 50 segundos](docs/tour-gestao-oficios.mp4)**: login, criação de um ofício do zero, numeração, gráficos, fechamento mensal e auditoria.
+
 ## Contexto
 
 Trabalhando em um gabinete de vereador, eu redigia ofícios no Word a partir de textos copiados de documentos antigos e controlava a numeração à mão. Isso gerava retrabalho, números duplicados e nenhuma visão de quantos pedidos cada secretaria tinha recebido ou se já tinham sido atendidos.
